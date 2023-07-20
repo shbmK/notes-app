@@ -6,7 +6,10 @@ export default function Sidebar(props) {
             <div className={`title ${note.id === props.currentNote.id ? "selected-note" : ""}`}
                 onClick={() => props.setCurrentNoteId(note.id)}
             >
-                <h4 className="text-snippet">Note {index + 1}</h4>
+                <h4 className="text-snippet">{note.body.split("\n")[0]}</h4>
+                <button lassName="delete-btn" onClick={(event)=>props.deleteNote(event,note.id)}  >
+                    <i className="gg-trash trash-icon"></i>
+                </button>
             </div>
         </div>
     ))
