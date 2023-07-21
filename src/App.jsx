@@ -4,10 +4,10 @@ import { useEffect } from 'react'
 import './App.css'
 import Sidebar from "./components/sidebar"
 import Editor from "./components/editor"
-import {onSnapshot} from "firebase/firestore"
+import {addDoc, onSnapshot,doc, deleteDoc} from "firebase/firestore"
 import Split from "react-split"
-import {nanoid} from "nanoid"
-import { notesCollection } from "../firebase"
+
+import { notesCollection ,db} from "../firebase"
 
 export default function App() {
   const [notes, setNotes] = useState([])
@@ -25,13 +25,13 @@ export default function App() {
         return unsubscribe
     }, [])
     
-  function createNewNote() {
+  async function createNewNote() {
     const newNote = {
-      id: nanoid(),
       body: "#markdown note's title" 
     }
-    setNotes(prevNotes => [newNote, ...prevNotes])
-    setCurrentNoteId(newNote.id)
+    const newNoteRef=await addDoc(notesCollection,newNote)
+
+    setCurrentNoteId(newNoteRef.id)
   }
   
   function updateNote(text) {
@@ -48,10 +48,9 @@ export default function App() {
         return newArray
     })
   }
-  function deleteNote(event,noteId){
-    event.stopPropagation()
-    setNotes(old=>old.filter(note=>note.id!==noteId))
-
+  async function deleteNote(noteId){
+    const docRef= doc(db,"notes",noteId)
+    await deleteDoc(docRef)
   }
   
   
@@ -73,14 +72,11 @@ export default function App() {
                   newNote={createNewNote}
                   deleteNote={deleteNote}
               />
-              {
-                  currentNoteId && 
-                  notes.length > 0 &&
-                  <Editor 
-                      currentNote={currentNote} 
-                      updateNote={updateNote} 
-                  />
-              }
+            <Editor 
+                currentNote={currentNote} 
+                updateNote={updateNote} 
+            />
+                    
           </Split>                                            //split ends here
           :
           <div className="no-notes">                         {/* if 0 notes present */}
