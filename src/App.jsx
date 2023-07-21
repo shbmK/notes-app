@@ -1,19 +1,39 @@
 import React from "react"
 import { useState } from 'react'
 import { useEffect } from 'react'
-import './App.css'
 import Sidebar from "./components/sidebar"
 import Editor from "./components/editor"
-import {addDoc, onSnapshot,doc, deleteDoc} from "firebase/firestore"
+import {addDoc, onSnapshot,doc, deleteDoc, setDoc} from "firebase/firestore"
 import Split from "react-split"
-
+import './App.css'
 import { notesCollection ,db} from "../firebase"
 
 export default function App() {
   const [notes, setNotes] = useState([])
-  const [currentNoteId, setCurrentNoteId] = useState(notes[0]?.id || "")
-  
+
+  const [currentNoteId, setCurrentNoteId] = useState("")
+
+  const [tempNoteText,setTempNoteText]=useState("")
+
+  useEffect(()=>{
+    if(currentNote){
+        setTempNoteText(currentNote.body)
+    }
+
+  },[currentNote])
+
+  useEffect(()=>{
+   const timeid= setTimeout(()=>{
+       if(tempNoteText!==currentNote.body)updateNote(tempNoteText)      //db will be updated on clicking 
+                                                                        //another note every time if cond'n not present
+    },500)
+    return ()=>clearTimeout(timeid)
+  },[tempNoteText])
+
+  const sortedNotes=notes.sort((a,b)=>b.updatedAt-a.updatedAt)
+
   const currentNote=notes.find(note => {return note.id === currentNoteId}) || notes[0]
+
   useEffect(() => {
         const unsubscribe=onSnapshot(notesCollection,function(snapshot){ 
             const notesArr=snapshot.docs.map(doc=>({
@@ -24,30 +44,32 @@ export default function App() {
         })
         return unsubscribe
     }, [])
+
     
   async function createNewNote() {
     const newNote = {
-      body: "#markdown note's title" 
+      body: "#markdown note's title" ,
+      createdAt:Date.now(),
+      updatedAt:Date.now()
     }
     const newNoteRef=await addDoc(notesCollection,newNote)
-
     setCurrentNoteId(newNoteRef.id)
   }
-  
-  function updateNote(text) {
-    setNotes(oldNotes => {
-        const newArray = []
-        for(let i = 0; i < oldNotes.length; i++) {
-            const oldNote = oldNotes[i]
-            if(oldNote.id === currentNoteId) {
-                newArray.unshift({ ...oldNote, body: text })
-            } else {
-                newArray.push(oldNote)
-            }
-        }
-        return newArray
-    })
+
+
+  useEffect(()=>{
+    if (!currentNoteId){
+        setCurrentNoteId(notes[0]?.id)
+    }
+  },[notes])
+
+
+  async function updateNote(text) {
+    const docRef=doc(db,"notes",currentNoteId)
+    await setDoc(docRef,{body:text,updatedAt:Date.now()},{merge:true})
   }
+
+
   async function deleteNote(noteId){
     const docRef= doc(db,"notes",noteId)
     await deleteDoc(docRef)
@@ -66,15 +88,15 @@ export default function App() {
               className="split"
           >
               <Sidebar
-                  notes={notes}
+                  notes={sortedNotes}
                   currentNote={currentNote}
                   setCurrentNoteId={setCurrentNoteId}
                   newNote={createNewNote}
                   deleteNote={deleteNote}
               />
             <Editor 
-                currentNote={currentNote} 
-                updateNote={updateNote} 
+                tempNoteText={tempNoteText}
+                setTempNoteText={setTempNoteText}
             />
                     
           </Split>                                            //split ends here
