@@ -15,6 +15,7 @@ export default function App() {
 
   const [tempNoteText,setTempNoteText]=useState("")
 
+  const currentNote=notes.find(note => {return note.id === currentNoteId}) || notes[0]
   useEffect(()=>{
     if(currentNote){
         setTempNoteText(currentNote.body)
@@ -32,7 +33,6 @@ export default function App() {
 
   const sortedNotes=notes.sort((a,b)=>b.updatedAt-a.updatedAt)
 
-  const currentNote=notes.find(note => {return note.id === currentNoteId}) || notes[0]
 
   useEffect(() => {
         const unsubscribe=onSnapshot(notesCollection,function(snapshot){ 
